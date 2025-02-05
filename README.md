@@ -1,2 +1,207 @@
 # Photo-remove-background-and-apply-greenscreen
-wh
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Editor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    input[type="file"] {
+      margin: 20px 0;
+    }
+    .image-container {
+      margin: 20px 0;
+    }
+    img {
+      max-width: 100%;
+      border-radius: 10px;
+    }
+    .tools {
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Image Editor</h1>
+    <input type="file" id="imageInput" accept="image/*">
+    <div class="image-container">
+      <img id="previewImage" src="#" alt="Preview" style="display: none;">
+    </div>
+    <div class="tools">
+      <button onclick="removeBackground()">Remove Background</button>
+      <button onclick="applyGreenScreenBackground()">Green Screen Background</button>
+      <button onclick="undo()" id="undoButton" disabled>Undo</button>
+      <button onclick="redo()" id="redoButton" disabled>Redo</button>
+      <button onclick="downloadImage()">Download</button>
+      <button onclick="greet()">Greet</button>
+    </div>
+  </div>
+
+  <script>
+    const API_KEY = 'YqkU25zjeRBYVQibmYG5E51V'; // Replace with your API key
+    let imageFile;
+    let history = []; // Stores image states for undo/redo
+    let currentStep = -1; // Tracks the current step in history
+
+    // Load image preview
+    document.getElementById('imageInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (file) {
+        imageFile = file;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const previewImage = document.getElementById('previewImage');
+          previewImage.src = e.target.result;
+          previewImage.style.display = 'block';
+          saveState(previewImage.src); // Save initial state
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Save current image state to history
+    function saveState(imageSrc) {
+      history = history.slice(0, currentStep + 1); // Remove redo steps
+      history.push(imageSrc);
+      currentStep++;
+      updateUndoRedoButtons();
+    }
+
+    // Undo functionality
+    function undo() {
+      if (currentStep > 0) {
+        currentStep--;
+        document.getElementById('previewImage').src = history[currentStep];
+        updateUndoRedoButtons();
+      }
+    }
+
+    // Redo functionality
+    function redo() {
+      if (currentStep < history.length - 1) {
+        currentStep++;
+        document.getElementById('previewImage').src = history[currentStep];
+        updateUndoRedoButtons();
+      }
+    }
+
+    // Enable/disable undo and redo buttons
+    function updateUndoRedoButtons() {
+      document.getElementById('undoButton').disabled = currentStep <= 0;
+      document.getElementById('redoButton').disabled = currentStep >= history.length - 1;
+    }
+
+    // Remove background using Remove.bg API
+    async function removeBackground() {
+      if (!imageFile) {
+        alert('Please upload an image first.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('image_file', imageFile);
+
+      try {
+        const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+          method: 'POST',
+          headers: {
+            'X-Api-Key': API_KEY,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to remove background.');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        document.getElementById('previewImage').src = url;
+        saveState(url); // Save state after background removal
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to remove background. Please try again.');
+      }
+    }
+
+    // Apply green screen background (simplified)
+    function applyGreenScreenBackground() {
+      const previewImage = document.getElementById('previewImage');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = previewImage.width;
+      canvas.height = previewImage.height;
+
+      // Draw green background
+      ctx.fillStyle = '#00ff00'; // Green color
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw the image on top
+      ctx.drawImage(previewImage, 0, 0, canvas.width, canvas.height);
+
+      // Update the preview image
+      const newImageUrl = canvas.toDataURL('image/png');
+      previewImage.src = newImageUrl;
+      saveState(newImageUrl); // Save state after applying green screen
+    }
+
+    // Download edited image
+    function downloadImage() {
+      const previewImage = document.getElementById('previewImage');
+      if (!previewImage.src || previewImage.src === '#') {
+        alert('No image to download.');
+        return;
+      }
+
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = previewImage.src;
+      link.download = 'edited-image.png'; // Default filename
+      document.body.appendChild(link);
+      link.click(); // Trigger download
+      document.body.removeChild(link); // Clean up
+    }
+
+    // Greet function
+    function greet() {
+      alert('Hello! Welcome to the Image Editor.');
+    }
+  </script>
+</body>
+</html>
