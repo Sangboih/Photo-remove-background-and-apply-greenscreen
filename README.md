@@ -1,10 +1,9 @@
-# Photo-remove-background-and-apply-greenscreen
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image Editor</title>
+  <title>Advanced Image Editor</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -32,6 +31,7 @@
     }
     img {
       max-width: 100%;
+      max-height: 400px; /* Limit image height for better UI */
       border-radius: 10px;
     }
     .tools {
@@ -53,11 +53,19 @@
       background: #ccc;
       cursor: not-allowed;
     }
+    .slider-container {
+      margin: 10px 0;
+    }
+    .slider-container label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Image Editor</h1>
+    <h1>Advanced Image Editor</h1>
     <input type="file" id="imageInput" accept="image/*">
     <div class="image-container">
       <img id="previewImage" src="#" alt="Preview" style="display: none;">
@@ -65,10 +73,29 @@
     <div class="tools">
       <button onclick="removeBackground()">Remove Background</button>
       <button onclick="applyGreenScreenBackground()">Green Screen Background</button>
+      <button onclick="cropImage()">Crop</button>
+      <button onclick="applyFilter('grayscale')">Grayscale</button>
+      <button onclick="applyFilter('sepia')">Sepia</button>
+      <button onclick="resetFilters()">Reset Filters</button>
       <button onclick="undo()" id="undoButton" disabled>Undo</button>
       <button onclick="redo()" id="redoButton" disabled>Redo</button>
       <button onclick="downloadImage()">Download</button>
-      <button onclick="greet()">Greet</button>
+    </div>
+    <div class="slider-container">
+      <label for="brightness">Brightness</label>
+      <input type="range" id="brightness" min="0" max="200" value="100" oninput="applyColorGrading()">
+    </div>
+    <div class="slider-container">
+      <label for="contrast">Contrast</label>
+      <input type="range" id="contrast" min="0" max="200" value="100" oninput="applyColorGrading()">
+    </div>
+    <div class="slider-container">
+      <label for="saturation">Saturation</label>
+      <input type="range" id="saturation" min="0" max="200" value="100" oninput="applyColorGrading()">
+    </div>
+    <div class="slider-container">
+      <label for="hue">Hue</label>
+      <input type="range" id="hue" min="0" max="360" value="0" oninput="applyColorGrading()">
     </div>
   </div>
 
@@ -181,6 +208,100 @@
       saveState(newImageUrl); // Save state after applying green screen
     }
 
+    // Apply color grading (brightness, contrast, saturation, hue)
+    function applyColorGrading() {
+      const previewImage = document.getElementById('previewImage');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = previewImage.width;
+      canvas.height = previewImage.height;
+
+      // Draw the image
+      ctx.drawImage(previewImage, 0, 0, canvas.width, canvas.height);
+
+      // Apply filters
+      const brightness = document.getElementById('brightness').value;
+      const contrast = document.getElementById('contrast').value;
+      const saturation = document.getElementById('saturation').value;
+      const hue = document.getElementById('hue').value;
+
+      ctx.filter = `
+        brightness(${brightness}%)
+        contrast(${contrast}%)
+        saturate(${saturation}%)
+        hue-rotate(${hue}deg)
+      `;
+
+      // Redraw the image with filters
+      ctx.drawImage(previewImage, 0, 0, canvas.width, canvas.height);
+
+      // Update the preview image
+      const newImageUrl = canvas.toDataURL('image/png');
+      previewImage.src = newImageUrl;
+      saveState(newImageUrl); // Save state after applying filters
+    }
+
+    // Apply predefined filters
+    function applyFilter(filter) {
+      const previewImage = document.getElementById('previewImage');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      canvas.width = previewImage.width;
+      canvas.height = previewImage.height;
+
+      // Draw the image
+      ctx.drawImage(previewImage, 0, 0, canvas.width, canvas.height);
+
+      // Apply filter
+      if (filter === 'grayscale') {
+        ctx.filter = 'grayscale(100%)';
+      } else if (filter === 'sepia') {
+        ctx.filter = 'sepia(100%)';
+      }
+
+      // Redraw the image with filter
+      ctx.drawImage(previewImage, 0, 0, canvas.width, canvas.height);
+
+      // Update the preview image
+      const newImageUrl = canvas.toDataURL('image/png');
+      previewImage.src = newImageUrl;
+      saveState(newImageUrl); // Save state after applying filter
+    }
+
+    // Reset all filters
+    function resetFilters() {
+      document.getElementById('brightness').value = 100;
+      document.getElementById('contrast').value = 100;
+      document.getElementById('saturation').value = 100;
+      document.getElementById('hue').value = 0;
+      applyColorGrading();
+    }
+
+    // Crop image (basic implementation)
+    function cropImage() {
+      const previewImage = document.getElementById('previewImage');
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Set canvas dimensions to half of the image size (example)
+      canvas.width = previewImage.width / 2;
+      canvas.height = previewImage.height / 2;
+
+      // Draw the cropped image
+      ctx.drawImage(
+        previewImage,
+        0, 0, previewImage.width, previewImage.height, // Source dimensions
+        0, 0, canvas.width, canvas.height // Destination dimensions
+      );
+
+      // Update the preview image
+      const newImageUrl = canvas.toDataURL('image/png');
+      previewImage.src = newImageUrl;
+      saveState(newImageUrl); // Save state after cropping
+    }
+
     // Download edited image
     function downloadImage() {
       const previewImage = document.getElementById('previewImage');
@@ -196,11 +317,6 @@
       document.body.appendChild(link);
       link.click(); // Trigger download
       document.body.removeChild(link); // Clean up
-    }
-
-    // Greet function
-    function greet() {
-      alert('Hello! Welcome to the Image Editor.');
     }
   </script>
 </body>
