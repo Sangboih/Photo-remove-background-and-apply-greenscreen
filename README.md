@@ -3,48 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Advanced Image Editor</title>
+  <title>Ultimate Image Editor</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      background: linear-gradient(135deg, #1e3c72, #2a5298); /* Modern gradient background */
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1); /* Semi-transparent white background */
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px); /* Frosted glass effect */
+      max-width: 800px;
+      width: 100%;
       text-align: center;
     }
     h1 {
-      color: #333;
-    }
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      color: white;
+      margin-bottom: 20px;
+      font-size: 2.5rem;
     }
     input[type="file"] {
       margin: 20px 0;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
     }
     .image-container {
       margin: 20px 0;
+      position: relative;
     }
     img {
       max-width: 100%;
-      max-height: 400px; /* Limit image height for better UI */
+      max-height: 400px;
       border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     .tools {
       margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
     }
     button {
       padding: 10px 20px;
-      margin: 5px;
       border: none;
       border-radius: 5px;
       background: #007bff;
       color: #fff;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
     button:hover {
       background: #0056b3;
@@ -60,23 +80,53 @@
       display: block;
       margin-bottom: 5px;
       font-weight: bold;
+      color: white;
+    }
+    .text-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      background: rgba(0, 0, 0, 0.5); /* Semi-transparent background for text */
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: move;
+    }
+    .feedback {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: white;
+      font-size: 14px;
+    }
+    .color-picker {
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
+  <div class="feedback">
+    Feedback: <a href="mailto:sangboih32@gmail.com" style="color: white;">sangboih32@gmail.com</a>
+  </div>
   <div class="container">
-    <h1>Advanced Image Editor</h1>
+    <h1>Ultimate Image Editor</h1>
     <input type="file" id="imageInput" accept="image/*">
     <div class="image-container">
       <img id="previewImage" src="#" alt="Preview" style="display: none;">
+      <div id="textOverlay" class="text-overlay" contenteditable="true" style="display: none;">Your Text Here</div>
     </div>
     <div class="tools">
       <button onclick="removeBackground()">Remove Background</button>
       <button onclick="applyGreenScreenBackground()">Green Screen Background</button>
-      <button onclick="cropImage()">Crop</button>
       <button onclick="applyFilter('grayscale')">Grayscale</button>
       <button onclick="applyFilter('sepia')">Sepia</button>
+      <button onclick="applyFilter('blur')">Blur</button>
+      <button onclick="applyFilter('invert')">Invert</button>
       <button onclick="resetFilters()">Reset Filters</button>
+      <button onclick="addText()">Add Text</button>
+      <button onclick="restartEditor()">Restart</button>
       <button onclick="undo()" id="undoButton" disabled>Undo</button>
       <button onclick="redo()" id="redoButton" disabled>Redo</button>
       <button onclick="downloadImage()">Download</button>
@@ -96,6 +146,10 @@
     <div class="slider-container">
       <label for="hue">Hue</label>
       <input type="range" id="hue" min="0" max="360" value="0" oninput="applyColorGrading()">
+    </div>
+    <div class="color-picker">
+      <label for="textColor">Text Color</label>
+      <input type="color" id="textColor" onchange="changeTextColor()">
     </div>
   </div>
 
@@ -259,6 +313,10 @@
         ctx.filter = 'grayscale(100%)';
       } else if (filter === 'sepia') {
         ctx.filter = 'sepia(100%)';
+      } else if (filter === 'blur') {
+        ctx.filter = 'blur(5px)';
+      } else if (filter === 'invert') {
+        ctx.filter = 'invert(100%)';
       }
 
       // Redraw the image with filter
@@ -279,27 +337,28 @@
       applyColorGrading();
     }
 
-    // Crop image (basic implementation)
-    function cropImage() {
+    // Add text overlay
+    function addText() {
+      const textOverlay = document.getElementById('textOverlay');
+      textOverlay.style.display = 'block';
+    }
+
+    // Change text color
+    function changeTextColor() {
+      const textOverlay = document.getElementById('textOverlay');
+      const color = document.getElementById('textColor').value;
+      textOverlay.style.color = color;
+    }
+
+    // Restart the editor
+    function restartEditor() {
       const previewImage = document.getElementById('previewImage');
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      // Set canvas dimensions to half of the image size (example)
-      canvas.width = previewImage.width / 2;
-      canvas.height = previewImage.height / 2;
-
-      // Draw the cropped image
-      ctx.drawImage(
-        previewImage,
-        0, 0, previewImage.width, previewImage.height, // Source dimensions
-        0, 0, canvas.width, canvas.height // Destination dimensions
-      );
-
-      // Update the preview image
-      const newImageUrl = canvas.toDataURL('image/png');
-      previewImage.src = newImageUrl;
-      saveState(newImageUrl); // Save state after cropping
+      previewImage.src = '#';
+      previewImage.style.display = 'none';
+      document.getElementById('textOverlay').style.display = 'none';
+      history = [];
+      currentStep = -1;
+      updateUndoRedoButtons();
     }
 
     // Download edited image
@@ -318,6 +377,28 @@
       link.click(); // Trigger download
       document.body.removeChild(link); // Clean up
     }
+
+    // Make text overlay draggable
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    document.getElementById('textOverlay').addEventListener('mousedown', function(e) {
+      isDragging = true;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (isDragging) {
+        const textOverlay = document.getElementById('textOverlay');
+        textOverlay.style.left = `${e.clientX - offsetX}px`;
+        textOverlay.style.top = `${e.clientY - offsetY}px`;
+      }
+    });
+
+    document.addEventListener('mouseup', function() {
+      isDragging = false;
+    });
   </script>
 </body>
 </html>
