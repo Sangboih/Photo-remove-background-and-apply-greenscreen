@@ -43,6 +43,7 @@
     .image-container {
       margin: 20px 0;
       position: relative;
+      display: inline-block;
     }
     img {
       max-width: 100%;
@@ -378,7 +379,7 @@
       document.body.removeChild(link); // Clean up
     }
 
-    // Make text overlay draggable
+    // Make text overlay draggable within the image bounds
     let isDragging = false;
     let offsetX, offsetY;
 
@@ -391,8 +392,20 @@
     document.addEventListener('mousemove', function(e) {
       if (isDragging) {
         const textOverlay = document.getElementById('textOverlay');
-        textOverlay.style.left = `${e.clientX - offsetX}px`;
-        textOverlay.style.top = `${e.clientY - offsetY}px`;
+        const imageContainer = document.querySelector('.image-container');
+        const imageRect = imageContainer.getBoundingClientRect();
+
+        // Calculate new position
+        let newX = e.clientX - offsetX - imageRect.left;
+        let newY = e.clientY - offsetY - imageRect.top;
+
+        // Constrain text within the image bounds
+        newX = Math.max(0, Math.min(newX, imageRect.width - textOverlay.offsetWidth));
+        newY = Math.max(0, Math.min(newY, imageRect.height - textOverlay.offsetHeight));
+
+        // Update text position
+        textOverlay.style.left = `${newX}px`;
+        textOverlay.style.top = `${newY}px`;
       }
     });
 
